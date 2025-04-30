@@ -5,10 +5,8 @@ import android.text.Editable
 import android.text.TextWatcher
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.githubrepos.databinding.ActivityMainBinding
-import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -21,25 +19,32 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setupRecyclerView()
+        setupObservers()
+        setupSearchListener()
+
+        // Safe: fetch repos, no need for coroutine here
+        viewModel.fetchRepositories()
+    }
+
+    private fun setupRecyclerView() {
         adapter = GHRepoAdapter()
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
+    }
 
-        lifecycleScope.launch {
-            viewModel.fetchRepositories()
+    private fun setupObservers() {
+        viewModel.repos.observe(this) { repoList ->
+            adapter.submitList(repoList)
         }
+    }
 
-        viewModel.repos.observe(this) {
-            adapter.submitList(it)
-        }
-
+    private fun setupSearchListener() {
         binding.searchEditText.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {}
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                lifecycleScope.launch {
-                    viewModel.searchRepositories(s.toString())
-                }
+                viewModel.searchRepositories(s.toString()) // no coroutine needed
             }
         })
     }
